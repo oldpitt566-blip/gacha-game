@@ -55,9 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetGameAndUI = () => {
         prizeDisplay.style.display = 'none';
         gachaMachine.classList.remove('faded');
+        
+        // Correctly reset the button's text and listener
         getCoinBtn.textContent = '跟爸爸拿錢';
         getCoinBtn.removeEventListener('click', resetGameAndUI);
         getCoinBtn.addEventListener('click', createCoinFunction);
+        getCoinBtn.style.display = 'block'; // Make sure it's visible
+
         resetGame();
     };
 
@@ -81,7 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
         handleContainer.style.transform = 'translateX(-50%) rotate(0deg)';
     }
 
-    // --- Prize Data Management ---
     function loadPrizes() {
         const savedTexts = localStorage.getItem('gachaPrizeTexts');
         if (savedTexts) {
@@ -94,28 +97,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleSettingsSave() {
         const prizeRows = settingsForm.querySelectorAll('.prize-setting');
-        const newPrizeTexts = [];
-        
+        const newPrizes = [];
         for (let i = 0; i < prizeRows.length; i++) {
             const row = prizeRows[i];
-            if (row.querySelector('.add-btn')) {
-                newPrizeTexts.push(null);
-                continue;
-            }
-            
+            if (row.querySelector('.add-btn')) { newPrizes.push(null); continue; }
             const nameInput = row.querySelector('input[type="text"]');
             const fileInput = row.querySelector('input[type="file"]');
             const file = fileInput.files[0];
-
-            newPrizeTexts.push(nameInput.value || null);
-
+            let newText = nameInput.value || null;
             if (file) {
                 sessionImages[i] = await toBase64(file);
             } else if (row.dataset.imageRemoved === 'true') {
                 delete sessionImages[i];
             }
+            newPrizeTexts.push(newText);
         }
-        
         prizeTexts = newPrizeTexts;
         localStorage.setItem('gachaPrizeTexts', JSON.stringify(prizeTexts));
         alert('設定已儲存！');
@@ -131,7 +127,6 @@ document.addEventListener('DOMContentLoaded', () => {
             prizeRow.className = 'prize-setting';
             prizeRow.dataset.index = i;
             prizeRow.dataset.imageRemoved = 'false';
-
             if (text !== null || image) {
                 prizeRow.innerHTML = `<span class="prize-label">${i + 1}.</span><input type="text" value="${text || ''}"><input type="file" accept="image/*" class="${image ? 'file-selected' : ''}">${image ? '<button type="button" class="prize-action-btn remove-image-btn">X</button>' : ''}<button type="button" class="prize-action-btn remove-btn">-</button>`;
             } else {
@@ -179,19 +174,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
-            const playAgainBtn = document.createElement('button');
-            playAgainBtn.id = 'play-again-btn';
-            playAgainBtn.textContent = '再來一次';
-            prizeDisplay.appendChild(playAgainBtn);
-            
-            playAgainBtn.addEventListener('click', resetGameAndUI);
-
             prizeDisplay.style.display = 'flex';
             cap.remove();
+            
+            getCoinBtn.textContent = '再來一次';
+            getCoinBtn.removeEventListener('click', createCoinFunction);
+            getCoinBtn.addEventListener('click', resetGameAndUI);
+            getCoinBtn.style.display = 'block';
+
         }, 800);
     }
     
-    // --- Core Game Mechanics (mostly unchanged) ---
+    // --- Core Game Mechanics ---
     function createCoin() { const coin = document.createElement('div'); coin.classList.add('coin'); const coinAreaRect = coinArea.getBoundingClientRect(); const randomTop = coinAreaRect.top + Math.random() * (coinAreaRect.height - 90); const randomLeft = coinAreaRect.left + Math.random() * (coinAreaRect.width - 90); coin.style.top = `${randomTop}px`; coin.style.left = `${randomLeft}px`; document.body.appendChild(coin); addCoinDragListeners(coin); }
     function addCoinDragListeners(coin) { let offsetX = 0, offsetY = 0, activeCoin = null; function startDrag(e) { activeCoin = coin; activeCoin.style.cursor = 'grabbing'; activeCoin.style.zIndex = '1000'; const touch = e.type === 'touchstart' ? e.touches[0] : e; const rect = activeCoin.getBoundingClientRect(); offsetX = touch.clientX - rect.left; offsetY = touch.clientY - rect.top; } function drag(e) { if (!activeCoin) return; e.preventDefault(); const touch = e.type === 'touchmove' ? e.touches[0] : e; activeCoin.style.left = `${touch.clientX - offsetX}px`; activeCoin.style.top = `${touch.clientY - offsetY}px`; } function endDrag() { if (!activeCoin) return; activeCoin.style.cursor = 'grab'; const coinRect = activeCoin.getBoundingClientRect(); const slotRect = coinSlot.getBoundingClientRect(); if (coinRect.left < slotRect.right && coinRect.right > slotRect.left && coinRect.top < slotRect.bottom && coinRect.bottom > slotRect.top) { activeCoin.remove(); coinsInSlot++; checkCoins(); } activeCoin = null; } coin.addEventListener('mousedown', startDrag); document.addEventListener('mousemove', drag, { passive: false }); document.addEventListener('mouseup', endDrag); coin.addEventListener('touchstart', startDrag, { passive: false }); document.addEventListener('touchmove', drag, { passive: false }); document.addEventListener('touchend', endDrag); }
     function checkCoins() { if (coinsInSlot === requiredCoins) { handleContainer.classList.remove('disabled'); requiredCoinsDisplay.classList.add('ready'); } }
