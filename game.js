@@ -55,13 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetGameAndUI = () => {
         prizeDisplay.style.display = 'none';
         gachaMachine.classList.remove('faded');
-        
-        // Correctly reset the button's text and listener
         getCoinBtn.textContent = '跟爸爸拿錢';
         getCoinBtn.removeEventListener('click', resetGameAndUI);
         getCoinBtn.addEventListener('click', createCoinFunction);
-        getCoinBtn.style.display = 'block'; // Make sure it's visible
-
+        getCoinBtn.style.display = 'block';
         resetGame();
     };
 
@@ -97,20 +94,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function handleSettingsSave() {
         const prizeRows = settingsForm.querySelectorAll('.prize-setting');
-        const newPrizes = [];
+        const newPrizeTexts = [];
         for (let i = 0; i < prizeRows.length; i++) {
             const row = prizeRows[i];
-            if (row.querySelector('.add-btn')) { newPrizes.push(null); continue; }
+            if (row.querySelector('.add-btn')) {
+                newPrizeTexts.push(null); // Corrected from newPrizes
+                continue;
+            }
             const nameInput = row.querySelector('input[type="text"]');
             const fileInput = row.querySelector('input[type="file"]');
             const file = fileInput.files[0];
-            let newText = nameInput.value || null;
+            newPrizeTexts.push(nameInput.value || null);
             if (file) {
                 sessionImages[i] = await toBase64(file);
             } else if (row.dataset.imageRemoved === 'true') {
                 delete sessionImages[i];
             }
-            newPrizeTexts.push(newText);
         }
         prizeTexts = newPrizeTexts;
         localStorage.setItem('gachaPrizeTexts', JSON.stringify(prizeTexts));
@@ -149,12 +148,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     availablePrizes.push({ index: i, text: prizeTexts[i], image: sessionImages[i] });
                 }
             }
-
             prizeDisplay.innerHTML = '';
             const title = document.createElement('h3');
             title.textContent = '恭喜獲得';
             prizeDisplay.appendChild(title);
-
             if (availablePrizes.length === 0) {
                 const prizeText = document.createElement('div');
                 prizeText.textContent = '沒有獎品了！';
@@ -174,14 +171,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
+            const playAgainBtn = document.createElement('button');
+            playAgainBtn.id = 'play-again-btn';
+            playAgainBtn.textContent = '再來一次';
+            prizeDisplay.appendChild(playAgainBtn);
+            
+            playAgainBtn.addEventListener('click', resetGameAndUI);
+
             prizeDisplay.style.display = 'flex';
             cap.remove();
-            
-            getCoinBtn.textContent = '再來一次';
-            getCoinBtn.removeEventListener('click', createCoinFunction);
-            getCoinBtn.addEventListener('click', resetGameAndUI);
-            getCoinBtn.style.display = 'block';
-
         }, 800);
     }
     
