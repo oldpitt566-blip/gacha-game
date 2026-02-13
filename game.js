@@ -111,6 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Main Logic ---
     function initialize() {
+        localStorage.removeItem('gachaPrizes'); // Clear old prize data if it exists
+        localStorage.removeItem('gachaUserPrizes'); // Clear user prize data to ensure fresh start with defaults
         loadPrizes();
         addEventListeners();
         startNewTurn();
@@ -228,8 +230,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const getWeightedRandomPrize = (prizesArray) => {
         const rarityWeights = {
             "common": 1,
-            "uncommon": 48, // empty.jpg to 30%
-            "rare": 32     // handshake, kiss, hug to 20% each
+            "uncommon": 10, // empty.jpg (目標降低機率)
+            "rare": 5     // handshake, kiss, hug (目標降低機率)
         };
 
         let totalWeight = 0;
