@@ -29,6 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentAngle = 0;
     let accumulatedAngle = 0;
 
+    // --- Stats Data ---
+    let stats = {
+        timesPlayed: 0,
+        coinsSpent: 0,
+        prizeCounts: {} // Stores counts for each prize name/image
+    };
+
     // --- Prize Data ---
     let prizes = []; // Unified array to store prize objects { text, image, rarity }
 
@@ -113,9 +120,34 @@ document.addEventListener('DOMContentLoaded', () => {
     function initialize() {
         localStorage.removeItem('gachaPrizes'); // Clear old prize data if it exists
         localStorage.removeItem('gachaUserPrizes'); // Clear user prize data to ensure fresh start with defaults
+        
         loadPrizes();
+        loadStats(); // Load statistics
+        updateGachaCounter(); // Display initial play count
         addEventListeners();
         startNewTurn();
+    }
+
+    // --- Stats Management ---
+    function loadStats() {
+        const savedStats = localStorage.getItem('gachaStats');
+        if (savedStats) {
+            stats = JSON.parse(savedStats);
+        } else {
+            stats = {
+                timesPlayed: 0,
+                coinsSpent: 0,
+                prizeCounts: {}
+            };
+        }
+    }
+
+    function saveStats() {
+        localStorage.setItem('gachaStats', JSON.stringify(stats));
+    }
+
+    function updateGachaCounter() {
+        document.getElementById('times-played').textContent = stats.timesPlayed;
     }
 
     function startNewTurn() {
@@ -195,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         localStorage.setItem('gachaUserPrizes', JSON.stringify(userPrizesToSave));
         alert('設定已儲存！');
-        settingsPanel.classList.add('hidden');
+        // settingsPanel.classList.add('hidden'); // Removed: user wants it to stay open after save
         loadPrizes(); // Reload to ensure prize data is consistent after save
     }
 
@@ -214,13 +246,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             prizeRow.innerHTML = `
                 <span class="prize-label">${i + 1}.</span>
-                ${hasContent || !isFixed ? `
-                    <input type="text" value="${(prize && prize.text) || ''}" ${isFixed ? 'readonly' : ''}>
-                    <input type="file" accept="image/*" class="${(prize && prize.image) ? 'file-selected' : ''}" ${isFixed ? 'disabled' : ''}>
-                    ${(prize && prize.image && !isFixed) ? '<button type="button" class="prize-action-btn remove-image-btn">X</button>' : ''}
-                    ${!isFixed ? '<button type="button" class="prize-action-btn remove-btn">-</button>' : ''}
+                <input type="text" value="${(prize && prize.text) || ''}" ${isFixed ? 'readonly' : ''}>
+                ${!isFixed ? `
+                    <input type="file" accept="image/*" class="${(prize && prize.image) ? 'file-selected' : ''}">
+                    ${(prize && prize.image) ? `<span class="image-selected-text">✅</span>` : ''}
+                    ${(prize && prize.image) ? '<button type="button" class="prize-action-btn remove-image-btn">X</button>' : ''}
+                    ${(prize && (prize.text || prize.image)) ? '<button type="button" class="prize-action-btn remove-btn">-</button>' : ''}
                 ` : `
-                    ${!isFixed ? '<button type="button" class="prize-action-btn add-btn">+</button>' : ''}
+                    ${(prize && prize.text) || (prize && prize.image) ? '' : '<button type="button" class="prize-action-btn add-btn">+</button>'}
                 `}
             `;
             settingsForm.appendChild(prizeRow);
@@ -274,6 +307,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 prizeDisplay.appendChild(prizeText);
             } else {
                 const prizeData = getWeightedRandomPrize(availablePrizes);
+
+                // Update prize counts
+                let prizeKey = prizeData.text || prizeData.image; // Use text or image as key
+                if (prizeKey) {
+                    if (!stats.prizeCounts[prizeKey]) {
+                        stats.prizeCounts[prizeKey] = 0;
+                    }
+                    stats.prizeCounts[prizeKey]++;
+                    saveStats(); // Save stats after updating prize count
+                }
+
                 if (prizeData.image) {
                     const img = document.createElement('img');
                     img.src = prizeData.image;
@@ -383,52 +427,180 @@ document.addEventListener('DOMContentLoaded', () => {
     function addOpenListeners(targetCapsule) { const handleOpen = (e) => { targetCapsule.removeEventListener('dblclick', handleOpen); targetCapsule.removeEventListener('touchend', handleTouchOpen); openCapsule(e, targetCapsule); }; const handleTouchOpen = (e) => { const currentTime = new Date().getTime(); if (currentTime - (targetCapsule.lastTap || 0) < 300) { handleOpen(e); } targetCapsule.lastTap = currentTime; }; targetCapsule.addEventListener('dblclick', handleOpen); targetCapsule.addEventListener('touchend', handleTouchOpen); }
 
     // --- Event Listeners ---
-    function addEventListeners() {
-        getCoinBtn.addEventListener('click', createCoinFunction);
-        function startTurn(e) { if (handleContainer.classList.contains('disabled')) return; e.preventDefault(); isTurning = true; document.querySelectorAll('.deco-capsule').forEach(c => c.classList.add('shake-animation')); const handleRect = handle.getBoundingClientRect(); const handleCenterX = handleRect.left + handleRect.width / 2; const handleCenterY = handleRect.top + handleRect.height / 2; const touch = e.type === 'touchstart' ? e.touches[0] : e; startAngle = getAngle(handleCenterX, handleCenterY, touch.clientX, touch.clientY); }
-        function doTurn(e) { if (!isTurning) return; e.preventDefault(); const handleRect = handle.getBoundingClientRect(); const handleCenterX = handleRect.left + handleRect.width / 2; const handleCenterY = handleRect.top + handleRect.height / 2; const touch = e.type === 'touchmove' ? e.touches[0] : e; const angle = getAngle(handleCenterX, handleCenterY, touch.clientX, touch.clientY); let delta = angle - startAngle; if (delta > 180) delta -= 360; else if (delta < -180) delta += 360; accumulatedAngle += delta; currentAngle += delta; startAngle = angle; handleContainer.style.transform = `translateX(-50%) rotate(${currentAngle}deg)`; if (accumulatedAngle >= 1080) { endTurn(); } }
-        function endTurn() { if (!isTurning) return; isTurning = false; document.querySelectorAll('.deco-capsule').forEach(c => c.classList.remove('shake-animation')); if (accumulatedAngle >= 1080) { handleContainer.classList.add('disabled'); dropCapsule(); } else { handleContainer.style.transition = 'transform 0.3s ease-out'; handleContainer.style.transform = 'translateX(-50%) rotate(0deg)'; setTimeout(() => handleContainer.style.transition = 'none', 300); currentAngle = 0; accumulatedAngle = 0; } }
-        handle.addEventListener('mousedown', startTurn);
-        document.addEventListener('mousemove', doTurn, { passive: false });
-        document.addEventListener('mouseup', endTurn);
-        handle.addEventListener('touchstart', startTurn, { passive: false });
-        document.addEventListener('touchmove', doTurn, { passive: false });
-        document.addEventListener('touchend', endTurn);
-        settingsBtn.addEventListener('click', () => passwordModal.classList.remove('hidden'));
-        passwordSubmit.addEventListener('click', () => { if (passwordInput.value === 'pitt') { passwordModal.classList.add('hidden'); passwordInput.value = ''; populateSettingsForm(); settingsPanel.classList.remove('hidden'); } else { alert('密碼錯誤！'); } });
-        saveSettingsBtn.addEventListener('click', handleSettingsSave);
-        closeBtns.forEach(btn => btn.addEventListener('click', () => { passwordModal.classList.add('hidden'); settingsPanel.classList.add('hidden'); }));
-        settingsForm.addEventListener('click', (e) => {
-            const settingRow = e.target.closest('.prize-setting');
-            if (!settingRow) return;
-            const index = parseInt(settingRow.dataset.index, 10);
-
-            const isFixed = index < NUM_DEFAULT_PRIZES;
-
-            if (isFixed) {
-                // Prevent any modifications to fixed prizes
-                return;
+        function addEventListeners() {
+            // --- Game Controls ---
+            getCoinBtn.addEventListener('click', createCoinFunction);
+    
+            // --- Handle Turn Mechanics ---
+            function startTurn(e) {
+                if (handleContainer.classList.contains('disabled')) return;
+                e.preventDefault();
+                isTurning = true;
+                document.querySelectorAll('.deco-capsule').forEach(c => c.classList.add('shake-animation'));
+                const handleRect = handle.getBoundingClientRect();
+                const handleCenterX = handleRect.left + handleRect.width / 2;
+                const handleCenterY = handleRect.top + handleRect.height / 2;
+                const touch = e.type === 'touchstart' ? e.touches[0] : e;
+                startAngle = getAngle(handleCenterX, handleCenterY, touch.clientX, touch.clientY);
             }
-            
-            if (e.target.classList.contains('add-btn')) {
-                // Ensure a default rarity for new user prizes
-                prizes[index] = { text: `新獎品 ${index + 1}`, image: null, rarity: "common" };
-                populateSettingsForm();
-            } else if (e.target.classList.contains('remove-btn')) {
-                // Clear the user-configurable prize slot
-                prizes[index] = { text: null, image: null, rarity: "common" };
-                populateSettingsForm();
-            } else if (e.target.classList.contains('remove-image-btn')) {
-                // Only remove the image, keep text and rarity
-                if (prizes[index]) {
-                    prizes[index].image = null;
-                    settingRow.dataset.imageRemoved = 'true'; // Keep for handleSettingsSave logic
+    
+            function doTurn(e) {
+                if (!isTurning) return;
+                e.preventDefault();
+                const handleRect = handle.getBoundingClientRect();
+                const handleCenterX = handleRect.left + handleRect.width / 2;
+                const handleCenterY = handleRect.top + handleRect.height / 2;
+                const touch = e.type === 'touchmove' ? e.touches[0] : e;
+                const angle = getAngle(handleCenterX, handleCenterY, touch.clientX, touch.clientY);
+                let delta = angle - startAngle;
+                if (delta > 180) delta -= 360;
+                else if (delta < -180) delta += 360;
+                accumulatedAngle += delta;
+                currentAngle += delta;
+                startAngle = angle;
+                handleContainer.style.transform = `translateX(-50%) rotate(${currentAngle}deg)`;
+                if (accumulatedAngle >= 1080) {
+                    endTurn();
                 }
-                populateSettingsForm();
             }
-        });
-        settingsForm.addEventListener('change', (e) => { if (e.target.matches('input[type="file"]')) { if (e.target.files.length > 0) { e.target.classList.add('file-selected'); } else { e.target.classList.remove('file-selected'); } } });
-    }
+    
+            function endTurn() {
+                if (!isTurning) return;
+                isTurning = false;
+                document.querySelectorAll('.deco-capsule').forEach(c => c.classList.remove('shake-animation'));
+                if (accumulatedAngle >= 1080) {
+                    handleContainer.classList.add('disabled');
+                    dropCapsule();
+    
+                    // Update stats after a successful gacha pull
+                    stats.timesPlayed++;
+                    stats.coinsSpent += requiredCoins * 100; // Assuming each coin.png is 100yen
+                    saveStats();
+                    updateGachaCounter(); // Update the counter on the main screen
+                } else {
+                    handleContainer.style.transition = 'transform 0.3s ease-out';
+                    handleContainer.style.transform = 'translateX(-50%) rotate(0deg)';
+                    setTimeout(() => handleContainer.style.transition = 'none', 300);
+                    currentAngle = 0;
+                    accumulatedAngle = 0;
+                }
+            }
+            handle.addEventListener('mousedown', startTurn);
+            document.addEventListener('mousemove', doTurn, { passive: false });
+            document.addEventListener('mouseup', endTurn);
+            handle.addEventListener('touchstart', startTurn, { passive: false });
+            document.addEventListener('touchmove', doTurn, { passive: false });
+            document.addEventListener('touchend', endTurn);
+    
+            // --- Settings Panel ---
+            settingsBtn.addEventListener('click', () => passwordModal.classList.remove('hidden'));
+            passwordSubmit.addEventListener('click', () => {
+                if (passwordInput.value === 'pitt') {
+                    passwordModal.classList.add('hidden');
+                    passwordInput.value = '';
+                    populateSettingsForm();
+                    settingsPanel.classList.remove('hidden');
+                } else {
+                    alert('密碼錯誤！');
+                }
+            });
+            saveSettingsBtn.addEventListener('click', handleSettingsSave);
+
+            const closeSettingsBtn = document.getElementById('close-settings-btn'); // Get the new close button
+            closeSettingsBtn.addEventListener('click', () => { // Add listener for the new button
+                settingsPanel.classList.add('hidden'); // Close settings panel
+            });
+
+            // This closeBtns.forEach now only handles password and stats modal
+            closeBtns.forEach(btn => btn.addEventListener('click', () => {
+                passwordModal.classList.add('hidden');
+                // settingsPanel.classList.add('hidden'); // Removed, handled by closeSettingsBtn
+                statsModal.classList.add('hidden'); // Also close stats modal if open
+            }));
+            settingsForm.addEventListener('click', (e) => {
+                const settingRow = e.target.closest('.prize-setting');
+                if (!settingRow) return;
+                const index = parseInt(settingRow.dataset.index, 10);
+    
+                const isFixed = index < NUM_DEFAULT_PRIZES;
+    
+                if (isFixed) {
+                    // Prevent any modifications to fixed prizes
+                    return;
+                }
+    
+                if (e.target.classList.contains('add-btn')) {
+                    // Ensure a default rarity for new user prizes
+                    prizes[index] = { text: `新獎品 ${index + 1}`, image: null, rarity: "common" };
+                    populateSettingsForm();
+                } else if (e.target.classList.contains('remove-btn')) {
+                    // Clear the user-configurable prize slot
+                    prizes[index] = { text: null, image: null, rarity: "common" };
+                    populateSettingsForm();
+                } else if (e.target.classList.contains('remove-image-btn')) {
+                    // Only remove the image, keep text and rarity
+                    if (prizes[index]) {
+                        prizes[index].image = null;
+                        settingRow.dataset.imageRemoved = 'true'; // Keep for handleSettingsSave logic
+                    }
+                    populateSettingsForm();
+                }
+            });
+            settingsForm.addEventListener('change', (e) => {
+                if (e.target.matches('input[type="file"]')) {
+                    if (e.target.files.length > 0) {
+                        e.target.classList.add('file-selected');
+                    } else {
+                        e.target.classList.remove('file-selected');
+                    }
+                }
+            });
+    
+            // --- Stats Modal Controls ---
+            const showStatsBtn = document.getElementById('show-stats-btn');
+            const statsModal = document.getElementById('stats-modal');
+            const statsTimesPlayed = document.getElementById('stats-times-played');
+            const statsCoinsSpent = document.getElementById('stats-coins-spent');
+            const statsPrizeCounts = document.getElementById('stats-prize-counts');
+            const resetStatsBtn = document.getElementById('reset-stats-btn');
+    
+            showStatsBtn.addEventListener('click', () => {
+                updateStatsDisplay();
+                statsModal.classList.remove('hidden');
+            });
+            resetStatsBtn.addEventListener('click', resetStats);
+        }
+    
+        function updateStatsDisplay() {
+            loadStats(); // Ensure latest stats are loaded
+                    document.getElementById('stats-times-played').textContent = stats.timesPlayed;
+                    document.getElementById('stats-coins-spent').textContent = `${stats.coinsSpent} yen`; // Display total amount in yen    
+            const prizeCountsList = document.getElementById('stats-prize-counts');
+            prizeCountsList.innerHTML = ''; // Clear previous list
+    
+            // Sort prize counts for better readability (optional)
+            const sortedPrizeKeys = Object.keys(stats.prizeCounts).sort((a, b) => stats.prizeCounts[b] - stats.prizeCounts[a]);
+    
+            sortedPrizeKeys.forEach(key => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${key}: ${stats.prizeCounts[key]} 次`;
+                prizeCountsList.appendChild(listItem);
+            });
+        }
+    
+        function resetStats() {
+            if (confirm('確定要重置所有統計數據嗎？此操作無法撤銷。')) {
+                stats = {
+                    timesPlayed: 0,
+                    coinsSpent: 0,
+                    prizeCounts: {}
+                };
+                saveStats();
+                updateGachaCounter();
+                updateStatsDisplay();
+                alert('統計數據已重置！');
+            }
+        }
     
     initialize();
 });

@@ -299,6 +299,28 @@ body, html {
     font-weight: bold;
 }
 
+/* New styles for left-top controls */
+#left-top-controls {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px; /* Space between counter and button */
+    align-items: flex-start;
+    z-index: 10;
+}
+
+#gacha-counter {
+    position: static; /* Remove absolute positioning as it's now inside #left-top-controls */
+    background-color: #55efc4;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+}
+
 #play-again-btn {
     /* position: absolute; */
     bottom: 20px;
@@ -314,9 +336,20 @@ body, html {
 
 #controls {
     display: flex;
-    gap: 20px;
+    gap: 20px; /* Revert gap back to original for main controls */
     align-items: center;
-    justify-content: center; /* Center the remaining button */
+    justify-content: center;
+}
+
+/* Style for the new "詳細" button (now an icon) */
+#show-stats-btn {
+    padding: 8px 12px; /* Smaller padding for icon button */
+    font-size: 18px; /* Adjust icon size */
+    cursor: pointer;
+    background-color: #55efc4; /* Changed to match gacha-counter */
+    color: white; /* Keep text color for visibility */
+    border: none;
+    border-radius: 8px; /* Match counter's border-radius */
 }
 
 #settings-btn {
@@ -367,6 +400,46 @@ body, html {
     overflow-y: auto;
 }
 
+/* New stats modal specific styles */
+.stats-content {
+    background: #55efc4; /* Changed to match gacha-counter */
+    max-height: 90vh; /* Allow more height for stats */
+    overflow-y: auto;
+    text-align: left; /* Align text within stats modal */
+    color: #333;
+}
+
+#stats-details h4 {
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+#stats-prize-counts {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#stats-prize-counts li {
+    padding: 5px 0;
+    border-bottom: 1px dotted #eee;
+}
+
+#stats-prize-counts li:last-child {
+    border-bottom: none;
+}
+
+#reset-stats-btn {
+    background: #d63031; /* Red color for reset */
+    color: white;
+    padding: 8px 15px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    margin-top: 20px;
+    font-size: 16px;
+}
+
 .modal-content h3 {
     margin-top: 0;
 }
@@ -380,28 +453,6 @@ body, html {
     font-size: 20px;
     cursor: pointer;
 }
-
-#settings-form .prize-setting {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-    gap: 10px;
-}
-
-#settings-form .prize-label {
-    font-weight: bold;
-    min-width: 20px;
-}
-
-#settings-form input[type="text"] {
-    flex-grow: 1;
-    padding: 5px;
-}
-
-#settings-form input[type="file"] {
-    color: transparent; /* Hide browser-default text */
-    max-width: 90px;
-}
 /* Style the button part of the file input */
 #settings-form input[type="file"]::file-selector-button {
     padding: 3px 8px;
@@ -413,55 +464,16 @@ body, html {
     font-size: 12px;
 }
 
-#settings-form .prize-action-btn {
-    background: #ff7675;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 25px;
-    height: 25px;
-    font-size: 16px;
-    cursor: pointer;
-    font-weight: bold;
-    /* Use flexbox for perfect centering */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#settings-form .add-btn {
-    background: #55efc4;
-    color: #333;
-}
-
-#settings-form .remove-image-btn {
-    background: #fdcb6e; /* Yellow for image removal */
-    color: #333;
+/* Style for "已選圖片" text */
+.image-selected-text {
+    font-size: 12px;
+    color: #2ecc71; /* Green color for success */
+    margin-left: 5px;
+    white-space: nowrap;
 }
 
 /* New rule for when a file is selected */
 #settings-form input[type="file"].file-selected::file-selector-button {
     background-color: #0984e3; /* Blue background */
     color: white;
-}
-
-#gacha-machine.faded {
-    opacity: 0.5;
-    transition: opacity 0.5s;
-}
-
-.capsule.opening {
-    animation: scale-and-fade 0.8s ease-in-out forwards;
-    z-index: 200; /* Ensure it's on top while animating */
-}
-
-@keyframes scale-and-fade {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(8);
-        opacity: 0;
-    }
 }
