@@ -98,10 +98,11 @@ body, html {
 }
 
 #required-coins-display {
-    width: 50px;
-    height: 50px;
-    background-color: #d63031; /* Red background */
-    color: white;
+    /* width: 50px; */ /* Removed fixed width */
+    /* height: 50px; */ /* Removed fixed height */
+    padding: 5px 10px; /* Added padding for better fit */
+    background-color: white; /* Changed to white */
+    color: #333; /* Changed text color for better contrast on white */
     border: 3px solid #444;
     border-radius: 10px;
     display: flex;
@@ -111,6 +112,7 @@ body, html {
     font-weight: bold;
     margin-right: 10px;
     transition: background-color 0.3s;
+    white-space: nowrap; /* Prevent text wrapping */
 }
 
 #required-coins-display.ready {
@@ -197,10 +199,13 @@ body, html {
     user-select: none;
     position: absolute;
     border: none;
-    /* Use coin.png as the background */
-    background-image: url('coin.png');
     background-size: cover;
     background-position: center;
+}
+
+.coin.yen1, .coin.yen50 {
+    width: 63px;
+    height: 63px;
 }
 
 .capsule {
