@@ -10,23 +10,36 @@
     <div id="game-container">
         <div id="gacha-machine">
             <div id="gacha-body">
-                <!-- Decorative capsules -->
-                <div class="deco-capsule" style="top: 20%; left: 30%; background: #a29bfe;"></div>
-                <div class="deco-capsule" style="top: 50%; left: 50%; background: #74b9ff;"></div>
-                <div class="deco-capsule" style="top: 40%; left: 10%; background: #55efc4;"></div>
-                <div class="deco-capsule" style="top: 60%; left: 70%; background: #ff7675;"></div>
-                <div class="deco-capsule" style="top: 30%; left: 65%; background: #fd79a8;"></div>
-            </div>
-            <div id="coin-slot-area">
-                <span id="coin-icon">🪙</span>
-                <div id="coin-slot"></div>
+                <!-- Many more capsules for a completely filled, 3D look -->
+                <!-- Back layer -->
+                <div class="deco-capsule" style="top: 5%; left: 5%; transform: scale(0.7); z-index: 1; background: #a29bfe;"></div>
+                <div class="deco-capsule" style="top: 15%; left: 30%; transform: scale(0.75); z-index: 1; background: #74b9ff;"></div>
+                <div class="deco-capsule" style="top: 10%; left: 60%; transform: scale(0.7); z-index: 1; background: #55efc4;"></div>
+                <div class="deco-capsule" style="top: 25%; left: 80%; transform: scale(0.75); z-index: 1; background: #ffeaa7;"></div>
+                <div class="deco-capsule" style="top: 30%; left: 15%; transform: scale(0.8); z-index: 2; background: #fab1a0;"></div>
+                <div class="deco-capsule" style="top: 40%; left: 5%; transform: scale(0.85); z-index: 2; background: #6c5ce7;"></div>
+                <!-- Middle layer -->
+                <div class="deco-capsule" style="top: 20%; left: 45%; transform: scale(0.85); z-index: 2; background: #ff7675;"></div>
+                <div class="deco-capsule" style="top: 35%; left: 50%; transform: scale(0.9); z-index: 3; background: #fd79a8;"></div>
+                <div class="deco-capsule" style="top: 50%; left: 25%; transform: scale(0.9); z-index: 3; background: #a29bfe;"></div>
+                <div class="deco-capsule" style="top: 45%; left: 70%; transform: scale(0.95); z-index: 3; background: #00cec9;"></div>
+                <div class="deco-capsule" style="top: 60%; left: 5%; transform: scale(0.9); z-index: 4; background: #74b9ff;"></div>
+                <div class="deco-capsule" style="top: 65%; left: 35%; transform: scale(0.95); z-index: 4; background: #55efc4;"></div>
+                <!-- Front layer -->
+                <div class="deco-capsule" style="top: 55%; left: 60%; transform: scale(1); z-index: 5; background: #ffeaa7;"></div>
+                <div class="deco-capsule" style="top: 70%; left: 80%; transform: scale(1.05); z-index: 5; background: #fab1a0;"></div>
+                <div class="deco-capsule" style="top: 75%; left: 15%; transform: scale(1); z-index: 5; background: #6c5ce7;"></div>
+                <div class="deco-capsule" style="top: 85%; left: 45%; transform: scale(1.05); z-index: 6; background: #ff7675;"></div>
             </div>
             <div id="handle-container">
                 <div id="handle">
-                    <div id="handle-lever"></div>
                 </div>
             </div>
             <div id="capsule-exit"></div>
+            <div id="coin-slot-area">
+                <div id="required-coins-display">0</div>
+                <div id="coin-slot"></div>
+            </div>
         </div>
         <div id="capsule-tray"></div>
         <div id="coin-area"></div>
