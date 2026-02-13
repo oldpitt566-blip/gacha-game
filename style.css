@@ -40,6 +40,10 @@ body, html {
     display: flex;
     justify-content: center;
     align-items: center;
+    /* 3D lighting effect */
+    box-shadow: 0 15px 25px rgba(0,0,0,0.25), 
+                inset 0 5px 10px rgba(255, 255, 255, 0.5), 
+                inset 0 -5px 15px rgba(0, 0, 0, 0.4);
 }
 
 #gacha-body {
@@ -254,27 +258,53 @@ body, html {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 600px; /* 200px * 3 */
-    height: 360px; /* 120px * 3 */
+    width: 600px;
+    height: 480px; /* Increased height for more content */
     background: white;
     border: 5px solid #fdcb6e;
     border-radius: 15px;
     display: none; /* Initially hidden */
-    justify-content: center;
+    /* New flex properties for vertical layout */
+    flex-direction: column;
+    justify-content: flex-start; /* Align content from the start */
     align-items: center;
-    font-size: 72px; /* 24px * 3 */
-    color: #e17055;
-    font-weight: bold;
+    gap: 15px; /* Add space between items */
     z-index: 100;
-    padding: 10px;
+    padding: 20px;
     box-sizing: border-box;
     text-align: center;
 }
 
+#prize-display h3 {
+    margin: 0;
+    font-size: 48px;
+    color: #e17055;
+}
+
 #prize-display img {
-    max-width: 100%;
-    max-height: 100%;
+    max-width: 80%;
+    max-height: 60%;
     object-fit: contain;
+    margin: 10px 0;
+}
+
+#prize-display .prize-text {
+    font-size: 40px;
+    color: #333;
+    font-weight: bold;
+}
+
+#play-again-btn {
+    /* position: absolute; */
+    bottom: 20px;
+    padding: 10px 25px;
+    font-size: 20px;
+    cursor: pointer;
+    background-color: #0984e3;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    margin-top: 20px; /* Added margin-top */
 }
 
 #controls {
@@ -388,11 +418,45 @@ body, html {
     font-size: 16px;
     cursor: pointer;
     font-weight: bold;
-    line-height: 25px;
-    text-align: center;
+    /* Use flexbox for perfect centering */
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #settings-form .add-btn {
     background: #55efc4;
     color: #333;
+}
+
+#settings-form .remove-image-btn {
+    background: #fdcb6e; /* Yellow for image removal */
+    color: #333;
+}
+
+/* New rule for when a file is selected */
+#settings-form input[type="file"].file-selected::file-selector-button {
+    background-color: #0984e3; /* Blue background */
+    color: white;
+}
+
+#gacha-machine.faded {
+    opacity: 0.5;
+    transition: opacity 0.5s;
+}
+
+.capsule.opening {
+    animation: scale-and-fade 0.8s ease-in-out forwards;
+    z-index: 200; /* Ensure it's on top while animating */
+}
+
+@keyframes scale-and-fade {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(8);
+        opacity: 0;
+    }
 }
