@@ -30,9 +30,36 @@ document.addEventListener('DOMContentLoaded', () => {
     let accumulatedAngle = 0;
 
     // --- Prize Data ---
-    let prizeTexts = []; // For persistent text storage
-    let sessionImages = {}; // For session-only image storage
-    const defaultPrizeTexts = ["爸爸親親", "爸爸抱抱", "爸爸牽手手"];
+    let prizes = []; // Unified array to store prize objects { text, image, rarity }
+
+    const NUM_DEFAULT_PRIZES = 20;
+    const NUM_USER_PRIZE_SLOTS = 10; // Allowing for 10 user-configurable slots
+    const TOTAL_PRIZE_SLOTS = NUM_DEFAULT_PRIZES + NUM_USER_PRIZE_SLOTS;
+
+
+    // --- Prize Data ---
+    const defaultPrizeData = [
+        { text: "公仔", image: "01.jpg", rarity: "common" },
+        { text: "饅頭", image: "02.jpg", rarity: "common" },
+        { text: "猴子", image: "03.jpg", rarity: "common" },
+        { text: "眼藥水", image: "04.jpg", rarity: "common" },
+        { text: "警車", image: "05.jpg", rarity: "common" },
+        { text: "外星人", image: "06.jpg", rarity: "common" },
+        { text: "卡比", image: "07.jpg", rarity: "common" },
+        { text: "塑膠飛機", image: "08.jpg", rarity: "common" },
+        { text: "小恐龍", image: "09.jpg", rarity: "common" },
+        { text: "木箱", image: "10.jpg", rarity: "common" },
+        { text: "小兔兔", image: "11.jpg", rarity: "common" },
+        { text: "太空人", image: "12.jpg", rarity: "common" },
+        { text: "拖鞋一隻", image: "13.jpg", rarity: "common" },
+        { text: "休旅車", image: "14.jpg", rarity: "common" },
+        { text: "空的扭蛋殼", image: "empty.jpg", rarity: "uncommon" },
+        { text: "花花一支", image: "flower.jpg", rarity: "common" },
+        { text: "和爸爸牽手", image: "handshake.jpg", rarity: "rare" },
+        { text: "和爸爸親親", image: "kiss.jpg", rarity: "rare" },
+        { text: "和哥哥玩", image: "play.jpg", rarity: "common" },
+        { text: "和爸爸抱抱", image: "hug.jpg", rarity: "rare" }
+    ];
     
     // --- Shared Functions ---
     const toBase64 = file => new Promise((resolve, reject) => {
@@ -44,12 +71,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Handler Logic ---
     const createCoinFunction = () => {
-        const existingCoins = document.querySelectorAll('.coin').length;
-        if (existingCoins + coinsInSlot >= requiredCoins) {
-            alert("場上的硬幣夠多了，先把硬幣投進去吧！");
-            return;
+        // Clear existing non-slot coins before spawning new ones
+        document.querySelectorAll('.coin').forEach(c => {
+            // Only remove coins that are not already in the slot
+            if (c.parentNode === document.body) { // Coins in slot are removed when dropped
+                c.remove();
+            }
+        });
+
+        const existingCoinsInSlot = coinsInSlot; // Keep track of coins already in slot
+        const coinsToSpawnCount = Math.floor(Math.random() * 6) + 10; // 10 to 15 coins
+
+        let mainCoinsSpawned = 0;
+        const mainCoinsNeeded = requiredCoins - existingCoinsInSlot; // How many more coin.png are needed
+
+        // First, spawn the guaranteed 'coin.png'
+        for (let i = 0; i < mainCoinsNeeded; i++) {
+            createCoin('coin');
+            mainCoinsSpawned++;
         }
-        createCoin();
+
+        // Then, spawn the remaining coins randomly
+        for (let i = 0; i < (coinsToSpawnCount - mainCoinsSpawned); i++) {
+            const coinTypes = ['coin', '1yen', '50yen'];
+            const randomType = coinTypes[Math.floor(Math.random() * coinTypes.length)];
+            createCoin(randomType);
+        }
     };
 
     const resetGameAndUI = () => {
@@ -71,9 +118,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function startNewTurn() {
         coinsInSlot = 0;
-        const possibleValues = [3, 4, 5];
+        const possibleValues = [3, 4, 5]; // This means 300, 400, or 500 yen
         requiredCoins = possibleValues[Math.floor(Math.random() * possibleValues.length)];
-        requiredCoinsDisplay.textContent = requiredCoins;
+        requiredCoinsDisplay.textContent = `${requiredCoins * 100}yen`; // Display in Yen
         requiredCoinsDisplay.classList.remove('ready');
         gachaMachine.classList.remove('faded');
         handleContainer.classList.add('disabled');
@@ -83,57 +130,129 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function loadPrizes() {
-        const savedTexts = localStorage.getItem('gachaPrizeTexts');
-        if (savedTexts) {
-            prizeTexts = JSON.parse(savedTexts);
-        } else {
-            prizeTexts = [...defaultPrizeTexts];
+        // Initialize prizes array with empty slots up to TOTAL_PRIZE_SLOTS
+        // Assign default rarity "common" to all new empty slots
+        prizes = Array.from({ length: TOTAL_PRIZE_SLOTS }, () => ({ text: null, image: null, rarity: "common" }));
+
+        // Populate with default prizes from defaultPrizeData
+        defaultPrizeData.forEach((defaultPrize, index) => {
+            if (index < NUM_DEFAULT_PRIZES) { // Ensure we don't go beyond default prizes count
+                prizes[index] = { ...defaultPrize };
+            }
+        });
+
+        // Load user-saved prizes for configurable slots
+        const savedUserPrizes = localStorage.getItem('gachaUserPrizes');
+        if (savedUserPrizes) {
+            const userPrizesArray = JSON.parse(savedUserPrizes);
+            userPrizesArray.forEach((userPrize, index) => {
+                const prizeIndex = NUM_DEFAULT_PRIZES + index;
+                if (prizeIndex < TOTAL_PRIZE_SLOTS && userPrize) {
+                    // Ensure user prizes also have a rarity, defaulting to "common"
+                    prizes[prizeIndex] = { ...userPrize, rarity: userPrize.rarity || "common" };
+                }
+            });
         }
-        while (prizeTexts.length < 10) { prizeTexts.push(null); }
     }
 
     async function handleSettingsSave() {
         const prizeRows = settingsForm.querySelectorAll('.prize-setting');
-        const newPrizeTexts = [];
-        for (let i = 0; i < prizeRows.length; i++) {
-            const row = prizeRows[i];
-            if (row.querySelector('.add-btn')) {
-                newPrizeTexts.push(null); // Corrected from newPrizes
+        const userPrizesToSave = [];
+        for (let i = NUM_DEFAULT_PRIZES; i < TOTAL_PRIZE_SLOTS; i++) {
+            const row = prizeRows[i]; // Get the row corresponding to the user-configurable slot
+            // If the row doesn't exist (e.g., fewer user slots displayed than configured),
+            // use the existing prize data from the 'prizes' array
+            if (!row) {
+                userPrizesToSave.push(prizes[i] || { text: null, image: null, rarity: "common" });
                 continue;
             }
+
             const nameInput = row.querySelector('input[type="text"]');
             const fileInput = row.querySelector('input[type="file"]');
-            const file = fileInput.files[0];
-            newPrizeTexts.push(nameInput.value || null);
+            
+            let prizeText = (nameInput && nameInput.value) ? nameInput.value : null;
+            let prizeImage = prizes[i] ? prizes[i].image : null; // Keep existing image if not changed
+            let prizeRarity = prizes[i] ? prizes[i].rarity : "common"; // Keep existing rarity
+
+            const file = fileInput ? fileInput.files[0] : null;
+
             if (file) {
-                sessionImages[i] = await toBase64(file);
+                prizeImage = await toBase64(file);
             } else if (row.dataset.imageRemoved === 'true') {
-                delete sessionImages[i];
+                prizeImage = null;
             }
+
+            userPrizesToSave.push({ text: prizeText, image: prizeImage, rarity: prizeRarity });
         }
-        prizeTexts = newPrizeTexts;
-        localStorage.setItem('gachaPrizeTexts', JSON.stringify(prizeTexts));
+        
+        // Update the main 'prizes' array with the newly saved user prizes
+        // This ensures the current session's 'prizes' array is up-to-date
+        userPrizesToSave.forEach((userPrize, index) => {
+            prizes[NUM_DEFAULT_PRIZES + index] = userPrize;
+        });
+
+        localStorage.setItem('gachaUserPrizes', JSON.stringify(userPrizesToSave));
         alert('設定已儲存！');
         settingsPanel.classList.add('hidden');
+        loadPrizes(); // Reload to ensure prize data is consistent after save
     }
 
     function populateSettingsForm() {
         settingsForm.innerHTML = '';
-        for (let i = 0; i < 10; i++) {
-            const text = prizeTexts[i];
-            const image = sessionImages[i];
+        // Iterate through all prize slots, default and user-configurable
+        for (let i = 0; i < TOTAL_PRIZE_SLOTS; i++) {
+            const prize = prizes[i]; // Get the prize from the global 'prizes' array
             const prizeRow = document.createElement('div');
             prizeRow.className = 'prize-setting';
             prizeRow.dataset.index = i;
-            prizeRow.dataset.imageRemoved = 'false';
-            if (text !== null || image) {
-                prizeRow.innerHTML = `<span class="prize-label">${i + 1}.</span><input type="text" value="${text || ''}"><input type="file" accept="image/*" class="${image ? 'file-selected' : ''}">${image ? '<button type="button" class="prize-action-btn remove-image-btn">X</button>' : ''}<button type="button" class="prize-action-btn remove-btn">-</button>`;
-            } else {
-                prizeRow.innerHTML = `<span class="prize-label">${i + 1}.</span><button type="button" class="prize-action-btn add-btn">+</button>`;
-            }
+            prizeRow.dataset.imageRemoved = 'false'; // Reset this flag for each render
+
+            const isFixed = i < NUM_DEFAULT_PRIZES; // Determine if it's a fixed default prize
+            const hasContent = prize && (prize.text || prize.image);
+
+            prizeRow.innerHTML = `
+                <span class="prize-label">${i + 1}.</span>
+                ${hasContent || !isFixed ? `
+                    <input type="text" value="${(prize && prize.text) || ''}" ${isFixed ? 'readonly' : ''}>
+                    <input type="file" accept="image/*" class="${(prize && prize.image) ? 'file-selected' : ''}" ${isFixed ? 'disabled' : ''}>
+                    ${(prize && prize.image && !isFixed) ? '<button type="button" class="prize-action-btn remove-image-btn">X</button>' : ''}
+                    ${!isFixed ? '<button type="button" class="prize-action-btn remove-btn">-</button>' : ''}
+                ` : `
+                    ${!isFixed ? '<button type="button" class="prize-action-btn add-btn">+</button>' : ''}
+                `}
+            `;
             settingsForm.appendChild(prizeRow);
         }
     }
+
+    const getWeightedRandomPrize = (prizesArray) => {
+        const rarityWeights = {
+            "common": 1,
+            "uncommon": 48, // empty.jpg to 30%
+            "rare": 32     // handshake, kiss, hug to 20% each
+        };
+
+        let totalWeight = 0;
+        const weightedPrizes = [];
+
+        prizesArray.forEach(prize => {
+            const weight = rarityWeights[prize.rarity] || rarityWeights["common"]; // Default to common if rarity not defined
+            totalWeight += weight;
+            weightedPrizes.push({ prize: prize, weight: weight });
+        });
+
+        let randomNumber = Math.random() * totalWeight;
+
+        for (let i = 0; i < weightedPrizes.length; i++) {
+            randomNumber -= weightedPrizes[i].weight;
+            if (randomNumber <= 0) {
+                return weightedPrizes[i].prize;
+            }
+        }
+
+        // Fallback in case of rounding errors or empty array, return a random one
+        return prizesArray[Math.floor(Math.random() * prizesArray.length)];
+    };
 
     function openCapsule(e, cap) {
         e.preventDefault();
@@ -142,12 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         getCoinBtn.style.display = 'none';
 
         setTimeout(() => {
-            const availablePrizes = [];
-            for(let i = 0; i < prizeTexts.length; i++) {
-                if (prizeTexts[i] || sessionImages[i]) {
-                    availablePrizes.push({ index: i, text: prizeTexts[i], image: sessionImages[i] });
-                }
-            }
+            const availablePrizes = prizes.filter(p => p.text || p.image);
             prizeDisplay.innerHTML = '';
             const title = document.createElement('h3');
             title.textContent = '恭喜獲得';
@@ -157,7 +271,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 prizeText.textContent = '沒有獎品了！';
                 prizeDisplay.appendChild(prizeText);
             } else {
-                const prizeData = availablePrizes[Math.floor(Math.random() * availablePrizes.length)];
+                const prizeData = getWeightedRandomPrize(availablePrizes);
                 if (prizeData.image) {
                     const img = document.createElement('img');
                     img.src = prizeData.image;
@@ -184,8 +298,82 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- Core Game Mechanics ---
-    function createCoin() { const coin = document.createElement('div'); coin.classList.add('coin'); const coinAreaRect = coinArea.getBoundingClientRect(); const randomTop = coinAreaRect.top + Math.random() * (coinAreaRect.height - 90); const randomLeft = coinAreaRect.left + Math.random() * (coinAreaRect.width - 90); coin.style.top = `${randomTop}px`; coin.style.left = `${randomLeft}px`; document.body.appendChild(coin); addCoinDragListeners(coin); }
-    function addCoinDragListeners(coin) { let offsetX = 0, offsetY = 0, activeCoin = null; function startDrag(e) { activeCoin = coin; activeCoin.style.cursor = 'grabbing'; activeCoin.style.zIndex = '1000'; const touch = e.type === 'touchstart' ? e.touches[0] : e; const rect = activeCoin.getBoundingClientRect(); offsetX = touch.clientX - rect.left; offsetY = touch.clientY - rect.top; } function drag(e) { if (!activeCoin) return; e.preventDefault(); const touch = e.type === 'touchmove' ? e.touches[0] : e; activeCoin.style.left = `${touch.clientX - offsetX}px`; activeCoin.style.top = `${touch.clientY - offsetY}px`; } function endDrag() { if (!activeCoin) return; activeCoin.style.cursor = 'grab'; const coinRect = activeCoin.getBoundingClientRect(); const slotRect = coinSlot.getBoundingClientRect(); if (coinRect.left < slotRect.right && coinRect.right > slotRect.left && coinRect.top < slotRect.bottom && coinRect.bottom > slotRect.top) { activeCoin.remove(); coinsInSlot++; checkCoins(); } activeCoin = null; } coin.addEventListener('mousedown', startDrag); document.addEventListener('mousemove', drag, { passive: false }); document.addEventListener('mouseup', endDrag); coin.addEventListener('touchstart', startDrag, { passive: false }); document.addEventListener('touchmove', drag, { passive: false }); document.addEventListener('touchend', endDrag); }
+    function createCoin(coinType = 'coin') { // Default to 'coin'
+        const coin = document.createElement('div');
+        coin.classList.add('coin');
+        // Set background based on coinType
+        if (coinType === '1yen') {
+            coin.style.backgroundImage = 'url("1yen.png")';
+            coin.classList.add('yen1'); // Add class for 1yen
+        } else if (coinType === '50yen') {
+            coin.style.backgroundImage = 'url("50yen.png")';
+            coin.classList.add('yen50'); // Add class for 50yen
+        } else { // 'coin'
+            coin.style.backgroundImage = 'url("coin.png")';
+        }
+        coin.dataset.coinType = coinType; // Store type in dataset
+
+        const coinAreaRect = coinArea.getBoundingClientRect();
+        // Adjust bounds for smaller coins if they are 45px
+        const coinHeight = (coinType === '1yen' || coinType === '50yen') ? 63 : 90;
+        const coinWidth = (coinType === '1yen' || coinType === '50yen') ? 63 : 90;
+
+        const randomTop = coinAreaRect.top + Math.random() * (coinAreaRect.height - coinHeight);
+        const randomLeft = coinAreaRect.left + Math.random() * (coinAreaRect.width - coinWidth);
+        coin.style.top = `${randomTop}px`;
+        coin.style.left = `${randomLeft}px`;
+        document.body.appendChild(coin);
+        addCoinDragListeners(coin);
+    }
+    function addCoinDragListeners(coin) {
+        let offsetX = 0, offsetY = 0, activeCoin = null;
+
+        function startDrag(e) {
+            activeCoin = coin;
+            activeCoin.style.cursor = 'grabbing';
+            activeCoin.style.zIndex = '1000';
+            const touch = e.type === 'touchstart' ? e.touches[0] : e;
+            const rect = activeCoin.getBoundingClientRect();
+            offsetX = touch.clientX - rect.left;
+            offsetY = touch.clientY - rect.top;
+        }
+
+        function drag(e) {
+            if (!activeCoin) return;
+            e.preventDefault();
+            const touch = e.type === 'touchmove' ? e.touches[0] : e;
+            activeCoin.style.left = `${touch.clientX - offsetX}px`;
+            activeCoin.style.top = `${touch.clientY - offsetY}px`;
+        }
+
+        function endDrag() {
+            if (!activeCoin) return;
+            activeCoin.style.cursor = 'grab';
+            const coinRect = activeCoin.getBoundingClientRect();
+            const slotRect = coinSlot.getBoundingClientRect();
+
+            if (coinRect.left < slotRect.right && coinRect.right > slotRect.left &&
+                coinRect.top < slotRect.bottom && coinRect.bottom > slotRect.top) {
+                
+                if (activeCoin.dataset.coinType === 'coin') { // Only count 'coin' type
+                    activeCoin.remove();
+                    coinsInSlot++;
+                    checkCoins();
+                } else {
+                    // Other coin types just disappear or bounce off, not counted for now
+                    activeCoin.remove(); // Remove other coin types for simplicity
+                }
+            }
+            activeCoin = null;
+        }
+
+        coin.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', drag, { passive: false });
+        document.addEventListener('mouseup', endDrag);
+        coin.addEventListener('touchstart', startDrag, { passive: false });
+        document.addEventListener('touchmove', drag, { passive: false });
+        document.addEventListener('touchend', endDrag);
+    }
     function checkCoins() { if (coinsInSlot === requiredCoins) { handleContainer.classList.remove('disabled'); requiredCoinsDisplay.classList.add('ready'); } }
     function getAngle(cx, cy, ex, ey) { const dy = ey - cy; const dx = ex - cx; return Math.atan2(dy, dx) * 180 / Math.PI; }
     function resetGame() { startNewTurn(); }
@@ -208,7 +396,35 @@ document.addEventListener('DOMContentLoaded', () => {
         passwordSubmit.addEventListener('click', () => { if (passwordInput.value === 'pitt') { passwordModal.classList.add('hidden'); passwordInput.value = ''; populateSettingsForm(); settingsPanel.classList.remove('hidden'); } else { alert('密碼錯誤！'); } });
         saveSettingsBtn.addEventListener('click', handleSettingsSave);
         closeBtns.forEach(btn => btn.addEventListener('click', () => { passwordModal.classList.add('hidden'); settingsPanel.classList.add('hidden'); }));
-        settingsForm.addEventListener('click', (e) => { const settingRow = e.target.closest('.prize-setting'); if (!settingRow) return; const index = parseInt(settingRow.dataset.index, 10); if (e.target.classList.contains('add-btn')) { prizeTexts[index] = `新獎品 ${index + 1}`; populateSettingsForm(); } else if (e.target.classList.contains('remove-btn')) { prizeTexts[index] = null; delete sessionImages[index]; populateSettingsForm(); } else if (e.target.classList.contains('remove-image-btn')) { delete sessionImages[index]; settingRow.dataset.imageRemoved = 'true'; populateSettingsForm(); } });
+        settingsForm.addEventListener('click', (e) => {
+            const settingRow = e.target.closest('.prize-setting');
+            if (!settingRow) return;
+            const index = parseInt(settingRow.dataset.index, 10);
+
+            const isFixed = index < NUM_DEFAULT_PRIZES;
+
+            if (isFixed) {
+                // Prevent any modifications to fixed prizes
+                return;
+            }
+            
+            if (e.target.classList.contains('add-btn')) {
+                // Ensure a default rarity for new user prizes
+                prizes[index] = { text: `新獎品 ${index + 1}`, image: null, rarity: "common" };
+                populateSettingsForm();
+            } else if (e.target.classList.contains('remove-btn')) {
+                // Clear the user-configurable prize slot
+                prizes[index] = { text: null, image: null, rarity: "common" };
+                populateSettingsForm();
+            } else if (e.target.classList.contains('remove-image-btn')) {
+                // Only remove the image, keep text and rarity
+                if (prizes[index]) {
+                    prizes[index].image = null;
+                    settingRow.dataset.imageRemoved = 'true'; // Keep for handleSettingsSave logic
+                }
+                populateSettingsForm();
+            }
+        });
         settingsForm.addEventListener('change', (e) => { if (e.target.matches('input[type="file"]')) { if (e.target.files.length > 0) { e.target.classList.add('file-selected'); } else { e.target.classList.remove('file-selected'); } } });
     }
     
